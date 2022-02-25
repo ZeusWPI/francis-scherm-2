@@ -435,7 +435,8 @@ dependencies = [
 [[package]]
 name = "framebuffer"
 version = "0.3.1"
-source = "git+https://github.com/Roysten/rust-framebuffer#c055f414d1f9993ecaf5846861753de6236853de"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "878caaaf1bb92c9f707dc6eef90933e07e913dac4bb8e11e145eaabaa94ef149"
 dependencies = [
  "errno",
  "libc",

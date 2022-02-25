@@ -20,11 +20,7 @@ async fn set_pixel(params: web::Path<(u32, u32, u8, u8, u8)>, data: web::Data<Ap
     let line_length = framebuffer.fix_screen_info.line_length;
     let bytespp = framebuffer.var_screen_info.bits_per_pixel / 8;
 
-    let x = params.0;
-    let y = params.1;
-    let r = params.2;
-    let g = params.3;
-    let b = params.4;
+    let (x, y, r, g, b) = params.into_inner();
 
     let start_index = (y * line_length + x * bytespp) as usize;
 

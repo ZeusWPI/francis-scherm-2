@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 framebuffer = { git = "https://github.com/Roysten/rust-framebuffer" }
-actix-web = "4.0.0-rc.1"
+actix-web = "4.0.0"

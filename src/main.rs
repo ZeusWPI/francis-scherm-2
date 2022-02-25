@@ -28,10 +28,14 @@ async fn set_pixel(params: web::Path<(u32, u32, u8, u8, u8)>, data: web::Data<Ap
 
     let start_index = (y * line_length + x * bytespp) as usize;
 
-    frame[start_index] = b;
-    frame[start_index+1] = g;
-    frame[start_index+2] = r;
-    HttpResponse::Ok().body(format!("Hello world! {} {} {}", params.0, params.1, params.2))
+    if start_index+2 < frame.len() {
+        frame[start_index] = b;
+        frame[start_index+1] = g;
+        frame[start_index+2] = r;
+        HttpResponse::Ok()
+    } else {
+        HttpResponse::NotFound()
+    }
 }
 
 #[actix_web::main]

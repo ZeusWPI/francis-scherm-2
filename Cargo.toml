@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-framebuffer = { git = "https://github.com/Roysten/rust-framebuffer" }
+framebuffer = "0.3.1"
 actix-web = "4.0.0"

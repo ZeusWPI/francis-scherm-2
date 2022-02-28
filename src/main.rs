@@ -59,16 +59,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				let b = parts[4].parse::<u8>().unwrap();
 
 				let start_index_ul =
-					(y * self.line_length + x * self.bytes_per_pixel) as usize;
+					(y*2 * self.line_length + x*2 * self.bytes_per_pixel) as usize;
 
-				let start_index_ur = (y * self.line_length
-					+ (x + 1) * self.bytes_per_pixel) as usize;
+				let start_index_ur = (y*2 * self.line_length
+					+ (x*2 + 1) * self.bytes_per_pixel) as usize;
 
-				let start_index_ll = ((y + 1) * self.line_length
-					+ x * self.bytes_per_pixel) as usize;
+				let start_index_ll = ((y*2 + 1) * self.line_length
+					+ x*2 * self.bytes_per_pixel) as usize;
 
 				let start_index_lr = ((y + 1) * self.line_length
-					+ (x + 1) * self.bytes_per_pixel) as usize;
+					+ (x*2 + 1) * self.bytes_per_pixel) as usize;
 
 				let mut frame = self.frame.lock().unwrap();
 

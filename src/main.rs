@@ -67,6 +67,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 					frame[start_index] = b;
 					frame[start_index + 1] = g;
 					frame[start_index + 2] = r;
+
+					drop(frame);
 					ctx.text("OK");
 				} else {
 					ctx.text("ERROR (out of bounds)");

@@ -58,15 +58,36 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				let g = parts[3].parse::<u8>().unwrap();
 				let b = parts[4].parse::<u8>().unwrap();
 
-				let start_index =
+				let start_index_ul =
 					(y * self.line_length + x * self.bytes_per_pixel) as usize;
+
+				let start_index_ur = (y * self.line_length
+					+ (x + 1) * self.bytes_per_pixel) as usize;
+
+				let start_index_ll = ((y + 1) * self.line_length
+					+ x * self.bytes_per_pixel) as usize;
+
+				let start_index_lr = ((y + 1) * self.line_length
+					+ (x + 1) * self.bytes_per_pixel) as usize;
 
 				let mut frame = self.frame.lock().unwrap();
 
-				if start_index + 2 < frame.len() {
-					frame[start_index] = b;
-					frame[start_index + 1] = g;
-					frame[start_index + 2] = r;
+				if start_index_lr + 2 < frame.len() {
+					frame[start_index_ul] = b;
+					frame[start_index_ul + 1] = g;
+					frame[start_index_ul + 2] = r;
+
+					frame[start_index_ur] = b;
+					frame[start_index_ur + 1] = g;
+					frame[start_index_ur + 2] = r;
+
+					frame[start_index_ll] = b;
+					frame[start_index_ll + 1] = g;
+					frame[start_index_ll + 2] = r;
+
+					frame[start_index_lr] = b;
+					frame[start_index_lr + 1] = g;
+					frame[start_index_lr + 2] = r;
 
 					drop(frame);
 					ctx.text("OK");

@@ -85,8 +85,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 	}
 }
 
-#[get("/ws")]
-async fn get_ws(
+#[get("/set_pixel")]
+async fn set_pixel_ws(
 	req: HttpRequest,
 	stream: web::Payload,
 	data: web::Data<AppState>,
@@ -163,7 +163,7 @@ async fn main() -> std::io::Result<()> {
 				bytes_per_pixel,
 				frame: frame.clone(),
 			}))
-			.service(get_ws)
+			.service(set_pixel_ws)
 			.service(set_pixel)
 	})
 	.bind(("0.0.0.0", 8000))?

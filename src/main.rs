@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use actix::{Actor, ActorContext, StreamHandler};
 use actix_web::middleware::Logger;
+use actix_web::web::PathConfig;
 use actix_web::{get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use framebuffer::Framebuffer;
@@ -176,6 +177,12 @@ async fn main() -> std::io::Result<()> {
 	HttpServer::new(move || {
 		App::new()
 			.wrap(Logger::default())
+			.app_data(PathConfig::default().error_handler(|err, _req| {
+				actix_web::error::InternalError::from_response(
+					err,
+					HttpResponse::BadRequest().into()
+				).into()
+			}))
 			.app_data(web::Data::new(AppState {
 				line_length,
 				bytes_per_pixel,

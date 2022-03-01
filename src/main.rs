@@ -148,24 +148,20 @@ async fn set_pixel(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-	let actual_framebuffer = Framebuffer::new("/dev/fb0").unwrap();
+	let mut framebuffer = Framebuffer::new("/dev/fb0").unwrap();
 
-	let height = actual_framebuffer.var_screen_info.yres;
-	let line_length = actual_framebuffer.fix_screen_info.line_length;
-	let bytes_per_pixel = actual_framebuffer.var_screen_info.bits_per_pixel / 8;
+	let height = framebuffer.var_screen_info.yres;
+	let line_length = framebuffer.fix_screen_info.line_length;
+	let bytes_per_pixel = framebuffer.var_screen_info.bits_per_pixel / 8;
 
 	// Will be sent to the request handler
 	let frame = Arc::new(Mutex::new(vec![0u8; (line_length * height) as usize]));
 
 	// Will be sent to the draw thread
-	let draw_framebuffer = Arc::new(Mutex::new(actual_framebuffer));
 	let draw_frame = Arc::clone(&frame);
 
 	thread::spawn(move || {
 		loop {
-			// Framebuffer::set_kd_mode(KdMode::Graphics).unwrap();
-
-			let mut framebuffer = draw_framebuffer.lock().unwrap();
 			let frame = draw_frame.lock().unwrap();
 
 			framebuffer.write_frame(&frame);
@@ -173,7 +169,6 @@ async fn main() -> std::io::Result<()> {
 			// Frame must be dropped so set_pixel can access it
 			drop(frame);
 
-			// Framebuffer::set_kd_mode(KdMode::Text).unwrap();
 			thread::sleep(Duration::from_millis(20));
 		}
 	});

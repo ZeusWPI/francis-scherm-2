@@ -1,76 +1,197 @@
-use framebuffer::Framebuffer;
-
-use actix_web::{web, App, HttpResponse, HttpServer, Responder, post};
-use actix_web::middleware::Logger;
-
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+use actix::{Actor, ActorContext, StreamHandler};
+use actix_web::middleware::Logger;
+use actix_web::web::PathConfig;
+use actix_web::{get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web_actors::ws;
+use framebuffer::Framebuffer;
+
 struct AppState {
-    framebuffer: Arc<Mutex<Framebuffer>>,
-    frame: Arc<Mutex<Vec<u8>>>,
+	line_length:     u32,
+	bytes_per_pixel: u32,
+	frame:           Arc<Mutex<Vec<u8>>>,
+}
+
+impl Actor for AppState {
+	type Context = ws::WebsocketContext<Self>;
+}
+
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
+	fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+		let msg = match msg {
+			Err(_) => {
+				ctx.stop();
+				return;
+			},
+			Ok(msg) => msg,
+		};
+
+		match msg {
+			ws::Message::Ping(msg) => ctx.pong(&msg),
+			ws::Message::Pong(_) => (),
+			ws::Message::Text(txt) => {
+				let m = txt.trim();
+				// Message format:
+				// x y r g b
+				// eg.
+				// 10 10 255 120 120 -> set (10, 10) to #FF7878
+				let parts = m.split(' ').collect::<Vec<&str>>();
+
+				if parts.len() != 5 {
+					ctx.text("ERROR (bad format)
+						Message format is `x y r g b`
+						Where:
+						  - x: int
+						  - y: int
+						  - r: int8
+						  - g: int8
+						  - b: int8
+						");
+					return;
+				}
+
+				let x = parts[0].parse::<u32>().unwrap();
+				let y = parts[1].parse::<u32>().unwrap();
+				let r = parts[2].parse::<u8>().unwrap();
+				let g = parts[3].parse::<u8>().unwrap();
+				let b = parts[4].parse::<u8>().unwrap();
+
+				let start_index_ul = (y * 2 * self.line_length
+					+ x * 2 * self.bytes_per_pixel) as usize;
+
+				let start_index_ur = (y * 2 * self.line_length
+					+ (x * 2 + 1) * self.bytes_per_pixel) as usize;
+
+				let start_index_ll = ((y * 2 + 1) * self.line_length
+					+ x * 2 * self.bytes_per_pixel) as usize;
+
+				let start_index_lr = ((y * 2 + 1) * self.line_length
+					+ (x * 2 + 1) * self.bytes_per_pixel) as usize;
+
+				let mut frame = self.frame.lock().unwrap();
+
+				if start_index_lr + 2 < frame.len() {
+					frame[start_index_ul] = b;
+					frame[start_index_ul + 1] = g;
+					frame[start_index_ul + 2] = r;
+
+					frame[start_index_ur] = b;
+					frame[start_index_ur + 1] = g;
+					frame[start_index_ur + 2] = r;
+
+					frame[start_index_ll] = b;
+					frame[start_index_ll + 1] = g;
+					frame[start_index_ll + 2] = r;
+
+					frame[start_index_lr] = b;
+					frame[start_index_lr + 1] = g;
+					frame[start_index_lr + 2] = r;
+
+					drop(frame);
+					ctx.text("OK");
+				} else {
+					ctx.text("ERROR (out of bounds)");
+				}
+			},
+			ws::Message::Binary(_) => ctx.text("unexpected binary"),
+			ws::Message::Close(reason) => {
+				ctx.close(reason);
+				ctx.stop();
+			},
+			ws::Message::Continuation(_) => {
+				ctx.stop();
+			},
+			ws::Message::Nop => (),
+		}
+	}
+}
+
+#[get("/set_pixel")]
+async fn set_pixel_ws(
+	req: HttpRequest,
+	stream: web::Payload,
+	data: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+	ws::start(
+		AppState {
+			line_length:     data.line_length,
+			bytes_per_pixel: data.bytes_per_pixel,
+			frame:           Arc::clone(&data.frame),
+		},
+		&req,
+		stream,
+	)
 }
 
 #[post("/{x}/{y}/{r}/{g}/{b}")]
-async fn set_pixel(params: web::Path<(u32, u32, u8, u8, u8)>, data: web::Data<AppState>) -> impl Responder {
-    let framebuffer = data.framebuffer.lock().unwrap();
-    let mut frame = data.frame.lock().unwrap();
+async fn set_pixel(
+	params: web::Path<(u32, u32, u8, u8, u8)>,
+	data: web::Data<AppState>,
+) -> impl Responder {
+	let mut frame = data.frame.lock().unwrap();
 
-    let line_length = framebuffer.fix_screen_info.line_length;
-    let bytespp = framebuffer.var_screen_info.bits_per_pixel / 8;
+	let (x, y, r, g, b) = params.into_inner();
 
-    let (x, y, r, g, b) = params.into_inner();
+	let start_index = (y * data.line_length + x * data.bytes_per_pixel) as usize;
 
-    let start_index = (y * line_length + x * bytespp) as usize;
-
-    if start_index+2 < frame.len() {
-        frame[start_index] = b;
-        frame[start_index+1] = g;
-        frame[start_index+2] = r;
-        HttpResponse::Ok()
-    } else {
-        HttpResponse::NotFound()
-    }
+	if start_index + 2 < frame.len() {
+		frame[start_index] = b;
+		frame[start_index + 1] = g;
+		frame[start_index + 2] = r;
+		HttpResponse::Ok()
+	} else {
+		HttpResponse::NotFound()
+	}
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let actual_framebuffer = Framebuffer::new("/dev/fb0").unwrap();
+	let mut framebuffer = Framebuffer::new("/dev/fb0").unwrap();
 
-    let h = actual_framebuffer.var_screen_info.yres;
-    let line_length = actual_framebuffer.fix_screen_info.line_length;
+	let height = framebuffer.var_screen_info.yres;
+	let line_length = framebuffer.fix_screen_info.line_length;
+	let bytes_per_pixel = framebuffer.var_screen_info.bits_per_pixel / 8;
 
-    let framebuffer = Arc::new(Mutex::new(actual_framebuffer));
-    let frame = Arc::new(Mutex::new(vec![0u8; (line_length * h) as usize]));
+	// Will be sent to the request handler
+	let frame = Arc::new(Mutex::new(vec![0u8; (line_length * height) as usize]));
 
-    let draw_framebuffer = framebuffer.clone();
-    let draw_frame = frame.clone();
+	// Will be sent to the draw thread
+	let draw_frame = Arc::clone(&frame);
 
-    thread::spawn(move || {
-        loop {
-            // Framebuffer::set_kd_mode(KdMode::Graphics).unwrap();
-            {
-                let mut framebuffer = draw_framebuffer.lock().unwrap();
-                let frame = draw_frame.lock().unwrap();
+	thread::spawn(move || {
+		loop {
+			let frame = draw_frame.lock().unwrap();
 
-                framebuffer.write_frame(&frame);
-            }
-            // Framebuffer::set_kd_mode(KdMode::Text).unwrap();
-            thread::sleep(Duration::from_millis(20));
-        }
-    });
+			framebuffer.write_frame(&frame);
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap(Logger::default())
-            .app_data(web::Data::new(AppState {
-                framebuffer: framebuffer.clone(),
-                frame: frame.clone(),
-            }))
-            .service(set_pixel)
-    })
-    .bind(("0.0.0.0", 8000))?
-    .run()
-    .await
+			// Frame must be dropped so set_pixel can access it
+			drop(frame);
+
+			thread::sleep(Duration::from_millis(20));
+		}
+	});
+
+	HttpServer::new(move || {
+		App::new()
+			.wrap(Logger::default())
+			.app_data(PathConfig::default().error_handler(|err, _req| {
+				actix_web::error::InternalError::from_response(
+					err,
+					HttpResponse::BadRequest().into()
+				).into()
+			}))
+			.app_data(web::Data::new(AppState {
+				line_length,
+				bytes_per_pixel,
+				frame: frame.clone(),
+			}))
+			.service(set_pixel_ws)
+			.service(set_pixel)
+	})
+	.bind(("0.0.0.0", 8000))?
+	.run()
+	.await
 }

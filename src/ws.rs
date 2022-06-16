@@ -29,7 +29,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				// 10 10 255 120 120 -> set (10, 10) to #FF7878
 				let parts = m.split(' ').collect::<Vec<&str>>();
 
-				if parts.len() != 5 {
+				if !(parts.len() == 5 || parts.len() == 6) {
 					ctx.text(
 						"ERROR (bad format)
 						Message format is `x y r g b [a]`

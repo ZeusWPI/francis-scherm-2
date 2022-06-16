@@ -50,7 +50,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				let r = parts[2].parse::<u8>().unwrap();
 				let g = parts[3].parse::<u8>().unwrap();
 				let b = parts[4].parse::<u8>().unwrap();
-				let a = parts[5].parse::<u8>().unwrap_or_else(|_| 1);
+				let a = parts[5].parse::<u8>().unwrap_or_else(|_| 255);
 
 				match self.set_pixel(x, y, r, g, b, a) {
 					Ok(_) => ctx.text("OK"),

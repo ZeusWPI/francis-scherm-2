@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use actix_web::middleware::Logger;
 use actix_web::web::PathConfig;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use framebuffer::Framebuffer;
@@ -37,7 +36,6 @@ async fn main() -> std::io::Result<()> {
 
 	HttpServer::new(move || {
 		App::new()
-			.wrap(Logger::default())
 			.app_data(PathConfig::default().error_handler(|err, _req| {
 				actix_web::error::InternalError::from_response(
 					err,

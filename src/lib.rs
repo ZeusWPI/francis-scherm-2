@@ -32,13 +32,15 @@ impl AppState {
 
 		if indices[3] + 2 < frame.len() {
 			for idx in indices {
-				let old_b = frame[idx];
-				let old_g = frame[idx + 1];
-				let old_r = frame[idx + 2];
+				let old_b = frame[idx] as u32;
+				let old_g = frame[idx + 1] as u32;
+				let old_r = frame[idx + 2] as u32;
 
-				frame[idx] = b * a + old_b * (255 - a);
-				frame[idx + 1] = r * a + old_r * (255 - a);
-				frame[idx + 2] = g * a + old_g * (255 - a);
+				frame[idx] = (((b as u32) * (a as u32) + old_b * (255 - (a as u32))) / 255) as u8;
+				frame[idx + 1] =
+					(((g as u32) * (a as u32) + old_g * (255 - (a as u32))) / 255) as u8;
+				frame[idx + 2] =
+					(((r as u32) * (a as u32) + old_r * (255 - (a as u32))) / 255) as u8;
 			}
 
 			Ok(())

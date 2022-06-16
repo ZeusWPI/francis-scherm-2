@@ -61,7 +61,41 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 					Err(_) => ctx.text("out of bounds"),
 				};
 			},
-			ws::Message::Binary(_) => ctx.text("unexpected binary"),
+			ws::Message::Binary(bin) => {
+				// XX XX XX XX YY YY YY YY RR GG BB AA
+				if !(bin.len() == 11 || bin.len() == 12) {
+					ctx.text(
+						"ERROR (bad format)
+						Message format is `x y r g b [a]`
+						Where:
+						  - x: uint32 (BE)
+						  - y: uint32 (BE)
+						  - r: uint8
+						  - g: uint8
+						  - b: uint8
+						  - [a: uint8]
+						",
+					);
+					return;
+				}
+
+				let x = u32::from_be_bytes(bin[0..4].try_into().unwrap());
+				let y = u32::from_be_bytes(bin[4..8].try_into().unwrap());
+				let r = bin[8];
+				let g = bin[9];
+				let b = bin[10];
+				let mut a = 255u8;
+
+				if bin.len() == 12 {
+					a = bin[11];
+				}
+
+				match self.set_pixel(x, y, r, g, b, a) {
+					Ok(_) => (),
+					Err(_) => ctx.text("out of bounds"),
+				};
+
+            },
 			ws::Message::Close(reason) => {
 				ctx.close(reason);
 				ctx.stop();

@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
 			// Frame must be dropped so set_pixel can access it
 			drop(frame);
 
-			thread::sleep(Duration::from_millis(20));
+			thread::sleep(Duration::from_millis(5));
 		}
 	});
 

@@ -1,4 +1,4 @@
-//! All handlers listenging to websocket based messages
+//! Websocket listener
 
 use std::sync::Arc;
 
@@ -30,15 +30,18 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				let parts = m.split(' ').collect::<Vec<&str>>();
 
 				if parts.len() != 5 {
-					ctx.text("ERROR (bad format)
-						Message format is `x y r g b`
+					ctx.text(
+						"ERROR (bad format)
+						Message format is `x y r g b [a]`
 						Where:
 						  - x: int
 						  - y: int
 						  - r: int8
 						  - g: int8
 						  - b: int8
-						");
+						  - [a: int8]
+						",
+					);
 					return;
 				}
 
@@ -47,42 +50,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 				let r = parts[2].parse::<u8>().unwrap();
 				let g = parts[3].parse::<u8>().unwrap();
 				let b = parts[4].parse::<u8>().unwrap();
+				let a = parts[5].parse::<u8>().unwrap_or_else(|_| 1);
 
-				let start_index_ul = (y * 2 * self.line_length
-					+ x * 2 * self.bytes_per_pixel) as usize;
-
-				let start_index_ur = (y * 2 * self.line_length
-					+ (x * 2 + 1) * self.bytes_per_pixel) as usize;
-
-				let start_index_ll = ((y * 2 + 1) * self.line_length
-					+ x * 2 * self.bytes_per_pixel) as usize;
-
-				let start_index_lr = ((y * 2 + 1) * self.line_length
-					+ (x * 2 + 1) * self.bytes_per_pixel) as usize;
-
-				let mut frame = self.frame.lock().unwrap();
-
-				if start_index_lr + 2 < frame.len() {
-					frame[start_index_ul] = b;
-					frame[start_index_ul + 1] = g;
-					frame[start_index_ul + 2] = r;
-
-					frame[start_index_ur] = b;
-					frame[start_index_ur + 1] = g;
-					frame[start_index_ur + 2] = r;
-
-					frame[start_index_ll] = b;
-					frame[start_index_ll + 1] = g;
-					frame[start_index_ll + 2] = r;
-
-					frame[start_index_lr] = b;
-					frame[start_index_lr + 1] = g;
-					frame[start_index_lr + 2] = r;
-
-					drop(frame);
-					ctx.text("OK");
-				} else {
-					ctx.text("ERROR (out of bounds)");
+				match self.set_pixel(x, y, r, g, b, a) {
+					Ok(_) => ctx.text("OK"),
+					Err(s) => ctx.text(s),
 				}
 			},
 			ws::Message::Binary(_) => ctx.text("unexpected binary"),

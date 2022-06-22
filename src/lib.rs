@@ -20,7 +20,7 @@ impl Actor for AppState {
 
 impl AppState {
 	#[inline(always)]
-	pub fn set_pixel(&self, x: u32, y: u32, r: u8, g: u8, b: u8, a: u8) -> Result<(), ()> {
+	pub fn set_pixel(&self, x: u32, y: u32, r: u8, g: u8, b: u8, a: u8) -> Result<(), String> {
 		let indices = [
 			(y * 2 * self.line_length + x * 2 * self.bytes_per_pixel) as usize,
 			(y * 2 * self.line_length + (x * 2 + 1) * self.bytes_per_pixel) as usize,
@@ -45,7 +45,7 @@ impl AppState {
 
 			Ok(())
 		} else {
-			Err(())
+			Err("out of bounds".to_string())
 		}
 	}
 }

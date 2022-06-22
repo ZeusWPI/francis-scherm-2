@@ -58,7 +58,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 
 				match self.set_pixel(x, y, r, g, b, a) {
 					Ok(_) => (),
-					Err(_) => ctx.text("out of bounds"),
+					Err(e) => ctx.text(e),
 				};
 			},
 			ws::Message::Binary(bin) => {
@@ -92,7 +92,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 
 				match self.set_pixel(x, y, r, g, b, a) {
 					Ok(_) => (),
-					Err(_) => ctx.text("out of bounds"),
+					Err(e) => ctx.text(e),
 				};
 			},
 			ws::Message::Close(reason) => {

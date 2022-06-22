@@ -36,7 +36,6 @@ async fn main() -> std::io::Result<()> {
 		}
 	});
 
-	// Will be sent to the UDP thread
 	let udp_frame = Arc::clone(&frame);
 	let udp_state = Arc::new(AppState { line_length, bytes_per_pixel, frame: udp_frame });
 
@@ -51,14 +50,11 @@ async fn main() -> std::io::Result<()> {
 		runtime.block_on(async {
 			let socket = UdpSocket::bind("0.0.0.0:8001").await.expect("UDP socket failed to bind");
 
-			println!("starting UDP listener");
+			let state = Arc::clone(&udp_state);
 
 			loop {
 				socket.recv_from(&mut buf).await.expect("UDP socket failed to receive");
 
-				let state = Arc::clone(&udp_state);
-
-				// println!("received {buf:?}");
 				state
 					.set_pixel(
 						u32::from_be_bytes(buf[0..4].try_into().unwrap()),

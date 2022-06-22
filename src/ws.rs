@@ -94,8 +94,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for AppState {
 					Ok(_) => (),
 					Err(_) => ctx.text("out of bounds"),
 				};
-
-            },
+			},
 			ws::Message::Close(reason) => {
 				ctx.close(reason);
 				ctx.stop();

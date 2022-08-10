@@ -2,8 +2,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use actix_web::rt::net::UdpSocket;
-use actix_web::rt::Runtime;
 use actix_web::web::PathConfig;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use framebuffer::Framebuffer;
@@ -34,37 +32,6 @@ async fn main() -> std::io::Result<()> {
 
 			thread::sleep(Duration::from_millis(5));
 		}
-	});
-
-	let udp_frame = Arc::clone(&frame);
-	let udp_state = AppState { line_length, bytes_per_pixel, frame: udp_frame };
-
-	thread::spawn(move || {
-		let runtime = Runtime::new().expect("good luck figuring this one out");
-
-		// 4 bytes x coord
-		// 4 bytes y coord
-		// 4 bytes RGBA
-		let mut buf = [0u8; 12];
-
-		runtime.block_on(async {
-			let socket = UdpSocket::bind("0.0.0.0:8001").await.expect("UDP socket failed to bind");
-
-			loop {
-				socket.recv_from(&mut buf).await.expect("UDP socket failed to receive");
-
-				udp_state
-					.set_pixel(
-						u32::from_be_bytes(buf[0..4].try_into().unwrap()),
-						u32::from_be_bytes(buf[4..8].try_into().unwrap()),
-						buf[8],
-						buf[9],
-						buf[10],
-						buf[11],
-					)
-					.unwrap();
-			}
-		});
 	});
 
 	HttpServer::new(move || {

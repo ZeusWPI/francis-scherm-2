@@ -1,4 +1,3 @@
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -11,24 +10,19 @@ use francis_scherm_2::{http, ws, AppState};
 async fn main() -> std::io::Result<()> {
 	let mut framebuffer = Framebuffer::new("/dev/fb0").unwrap();
 
-	let height = framebuffer.var_screen_info.yres;
 	let line_length = framebuffer.fix_screen_info.line_length;
 	let bytes_per_pixel = framebuffer.var_screen_info.bits_per_pixel / 8;
+	let size = (line_length * framebuffer.var_screen_info.yres) as usize;
 
-	// Will be sent to the request handler
-	let frame = Arc::new(Mutex::new(vec![0u8; (line_length * height) as usize]));
-
-	// Will be sent to the draw thread
-	let draw_frame = Arc::clone(&frame);
+	// Will be sent to the request handlers
+	let mut frame = Box::pin(vec![0u8; size]);
+	let frame_ptr = frame.as_mut_ptr() as usize; // Cast to usize so it's thread-safe hehe
 
 	thread::spawn(move || {
+		let frame = unsafe { std::slice::from_raw_parts(frame_ptr as *const u8, size) };
+
 		loop {
-			let frame = draw_frame.lock().unwrap();
-
-			framebuffer.write_frame(&frame);
-
-			// Frame must be dropped so set_pixel can access it
-			drop(frame);
+			framebuffer.write_frame(frame);
 
 			thread::sleep(Duration::from_millis(5));
 		}
@@ -43,11 +37,7 @@ async fn main() -> std::io::Result<()> {
 				)
 				.into()
 			}))
-			.app_data(web::Data::new(AppState {
-				line_length,
-				bytes_per_pixel,
-				frame: frame.clone(),
-			}))
+			.app_data(web::Data::new(AppState { line_length, bytes_per_pixel, size, frame_ptr }))
 			.service(ws::set_pixel)
 			.service(http::set_pixel_path)
 	})

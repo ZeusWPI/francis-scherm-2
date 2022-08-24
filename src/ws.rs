@@ -1,7 +1,5 @@
 //! Websocket listener
 
-use std::sync::Arc;
-
 use actix::{ActorContext, StreamHandler};
 use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
@@ -117,7 +115,8 @@ async fn set_pixel(
 		AppState {
 			line_length:     data.line_length,
 			bytes_per_pixel: data.bytes_per_pixel,
-			frame:           Arc::clone(&data.frame),
+			size:            data.size,
+			frame_ptr:       data.frame_ptr,
 		},
 		&req,
 		stream,

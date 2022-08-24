@@ -79,31 +79,33 @@ _Noreturn void serve() {
 void *handle_socket(void *socket) {
     int client_socket = (int) (uintptr_t) socket;
 
-    uint8_t packet[PACKET_SIZE] = {0};
+    uint8_t packet[1000][PACKET_SIZE] = {0};
 
     long res;
-    while ((res = recv(client_socket, &packet, PACKET_SIZE, MSG_WAITALL)) != -1) {
+    while ((res = recv(client_socket, &packet, PACKET_SIZE*1000, MSG_WAITALL)) != -1) {
 
         if (res == 0) {
             break;
         }
 
-        if (res != 7) {
+        if (res != PACKET_SIZE*1000) {
             continue;
         }
 
-        unsigned int x = packet[0] << 8 | packet[1];
-        unsigned int y = packet[2] << 8 | packet[3];
-        unsigned int idx = y * line_length + x * bytes_per_pixel;
+        for (int i = 0; i < 1000; i++) {
+            unsigned int x = packet[i][0] << 8 | packet[i][1];
+            unsigned int y = packet[i][2] << 8 | packet[i][3];
+            unsigned int idx = y * line_length + x * bytes_per_pixel;
 
 
-        if (idx >= frame_length) {
-            continue;
+            if (idx >= frame_length) {
+                continue;
+            }
+
+            *(buffer + idx) = packet[i][6];
+            *(buffer + idx + 1) = packet[i][5];
+            *(buffer + idx + 2) = packet[i][4];
         }
-
-        *(buffer + idx) = packet[6];
-        *(buffer + idx + 1) = packet[5];
-        *(buffer + idx + 2) = packet[4];
     }
 
     return NULL;

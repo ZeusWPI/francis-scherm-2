@@ -78,7 +78,10 @@ _Noreturn void serve(uint16_t x_res, uint16_t y_res) {
         int client_addr_len = sizeof(client_addr);
         int client_socket = accept(listen_socket, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
 
-        write(client_socket, size_bytes, 4);
+        ssize_t written = write(client_socket, size_bytes, 4);
+        if (written != 4) {
+            continue;
+        }
 
         pthread_t thread_id;
         pthread_create(&thread_id, NULL, &handle_socket, (void *) (uintptr_t) client_socket);

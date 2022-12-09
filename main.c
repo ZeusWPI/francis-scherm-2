@@ -15,6 +15,7 @@
 /* Socket Stuff */
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #define PACKET_SIZE 7
 
@@ -23,7 +24,7 @@ uint32_t bytes_per_pixel;
 uint32_t frame_length;
 volatile uint8_t *buffer;
 
-void serve();
+void serve(uint16_t, uint16_t);
 
 void *handle_socket(void *);
 
@@ -41,18 +42,25 @@ int main(int argc, char **argv) {
 
     buffer = mmap(0, frame_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_screen, 0);
 
-    serve();
+    serve((uint16_t) var_info.xres_virtual, (uint16_t) var_info.yres_virtual);
 
     return 0;
 }
 
-_Noreturn void serve() {
+_Noreturn void serve(uint16_t x_res, uint16_t y_res) {
     printf("Starting server on port 8000\n");
     int listen_socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server_addr = {
             .sin_family = AF_INET,
             .sin_port = htons(8000),
             .sin_addr.s_addr = inet_addr("0.0.0.0")
+    };
+
+    uint8_t size_bytes[] = {
+        (x_res >> 0x8) & 0xff,
+        x_res & 0xff,
+        (y_res >> 0x8) & 0xff,
+        y_res & 0xff,
     };
 
     int err = bind(listen_socket, (struct sockaddr *) &server_addr, sizeof(server_addr));
@@ -70,6 +78,7 @@ _Noreturn void serve() {
         int client_addr_len = sizeof(client_addr);
         int client_socket = accept(listen_socket, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
 
+        write(client_socket, size_bytes, 4);
 
         pthread_t thread_id;
         pthread_create(&thread_id, NULL, &handle_socket, (void *) (uintptr_t) client_socket);

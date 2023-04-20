@@ -91,22 +91,23 @@ _Noreturn void serve(uint16_t x_res, uint16_t y_res) {
 void *handle_socket(void *socket) {
     int client_socket = (int) (uintptr_t) socket;
 
-    uint8_t packet[1000][PACKET_SIZE] = {0};
+    uint8_t packet[1001*PACKET_SIZE] = {0};
 
-    long res;
-    while ((res = recv(client_socket, &packet, PACKET_SIZE*1000, MSG_WAITALL)) != -1) {
+    long res = 0;
+    long bytes_left = 0;
+    while ((res = recv(client_socket, &packet[bytes_left], PACKET_SIZE*1000, MSG_WAITFORONE)) != -1) {
 
         if (res == 0) {
             break;
         }
 
-        if (res != PACKET_SIZE*1000) {
-            continue;
-        }
+        res += bytes_left;
+        bytes_left = res % PACKET_SIZE;
 
-        for (int i = 0; i < 1000; i++) {
-            unsigned int x = packet[i][0] << 8 | packet[i][1];
-            unsigned int y = packet[i][2] << 8 | packet[i][3];
+        for (int i = 0; i < (res / PACKET_SIZE); i++) {
+            int base_i = i * PACKET_SIZE;
+            unsigned int x = packet[base_i + 0] << 8 | packet[base_i + 1];
+            unsigned int y = packet[base_i + 2] << 8 | packet[base_i + 3];
             unsigned int idx = y * line_length + x * bytes_per_pixel;
 
 
@@ -114,9 +115,16 @@ void *handle_socket(void *socket) {
                 continue;
             }
 
-            *(buffer + idx) = packet[i][6];
-            *(buffer + idx + 1) = packet[i][5];
-            *(buffer + idx + 2) = packet[i][4];
+            *(buffer + idx + 0) = packet[base_i + 6];
+            *(buffer + idx + 1) = packet[base_i + 5];
+            *(buffer + idx + 2) = packet[base_i + 4];
+        }
+
+        bytes_left = res % PACKET_SIZE;
+        if (bytes_left != 0) {
+          for (int i = 0; i < bytes_left; i++) {
+            packet[i] = packet[(res - (res % PACKET_SIZE)) + i];
+          }
         }
     }
 

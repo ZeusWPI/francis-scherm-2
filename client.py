@@ -3,8 +3,10 @@ import socket
 from typing import Tuple, List
 
 
-# Class to send pixels to a screen
 class Pixels:
+	"""
+	Class to send pixels to a screen
+	"""
 	def __init__(self):
 		self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.client_socket.connect(("10.0.0.8", 8000))
@@ -13,7 +15,7 @@ class Pixels:
 	def get_size(self) -> Tuple[int, int]:
 		"""
 		Returns the size of the screen.\n
-		Be aware that even though the screen can be 200 pixels wide, the last pixel has index 199.
+		Be aware that even though the screen can be 200 pixels wide, the last pixel has index 199\n.
 		The numbering starts from 0.
 		"""
 		return self._x, self._y

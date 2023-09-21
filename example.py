@@ -24,7 +24,6 @@ if height > screen_height:
 	width = int(height * aspect_ratio)
 if resized:
 	image = image.resize((width, height), Image.ANTIALIAS)
-	width, height = image.size
 
 # Image data
 image = image.convert('RGB')

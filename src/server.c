@@ -67,7 +67,7 @@ _Noreturn void server_run(server_t* server, buffer_t* buffer)
 		server_worker_thread_args_t* s_args = malloc(sizeof(server_worker_thread_args_t));
 
 		if (s_args == NULL) {
-			printf("Error allocating arguments, skipping");
+			printf("Error allocating arguments, skipping\n");
 			continue;
 		}
 
@@ -95,7 +95,7 @@ void * server_worker_thread(void* args)
 		}
 
 		if (res != 7) {
-			printf("WARN: incomplete packet");
+			printf("WARN: incomplete packet\n");
 		}
 
 		uint16_t x = packet[0] << 8 | packet[1];

@@ -36,8 +36,6 @@ void buffer_set(buffer_t* buffer, uint16_t x, uint16_t y, uint8_t r, uint8_t g, 
 		return;
 	}
 
-	printf("updating buffer\n");
-
 	*(buffer->data + idx + 0) = b;
 	*(buffer->data + idx + 1) = g;
 	*(buffer->data + idx + 2) = r;

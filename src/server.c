@@ -87,15 +87,21 @@ void * server_worker_thread(void* args)
 	server_worker_thread_args_t* s_args = (server_worker_thread_args_t*) args;
 
 	long res = 0;
+	uint8_t bytes_received = 0;
 	uint8_t packet[7];
 
-	while ((res = recv(s_args->socket, &packet, 7, MSG_WAITFORONE)) != -1) {
+	while ((res = recv(s_args->socket, &packet, 7-bytes_received, MSG_WAITFORONE)) != -1) {
 		if (res == 0) {
 			break;
 		}
 
 		if (res != 7) {
-			printf("WARN: incomplete packet\n");
+			bytes_received += res;
+			if (bytes_received != 7) {
+				continue;
+			} else {
+				bytes_received = 0;
+			}
 		}
 
 		uint16_t x = packet[0] << 8 | packet[1];

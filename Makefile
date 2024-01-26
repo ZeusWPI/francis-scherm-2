@@ -16,10 +16,10 @@ clean:
 	rm ${TARGET}
 	rm build/*
 
-build: ${BUILD_DIR}/server.o ${BUILD_DIR}/display_fb.o ${BUILD_DIR}/buffer.o
-	${CC} ${CFLAGS} -o ${TARGET} -lpthread \
+build: ${BUILD_DIR}/server.o ${BUILD_DIR}/display_sdl.o ${BUILD_DIR}/buffer.o
+	${CC} ${CFLAGS} -o ${TARGET} -lpthread -lSDL2 \
 		src/main.c \
-		${BUILD_DIR}/display_fb.o \
+		${BUILD_DIR}/display_sdl.o \
 		${BUILD_DIR}/server.o \
 		${BUILD_DIR}/buffer.o
 
@@ -28,6 +28,9 @@ $(BUILD_DIR)/server.o: src/server.c src/server.h
 
 $(BUILD_DIR)/display_fb.o: src/display_fb.c src/display.h
 	${CC} ${CFLAGS} src/display_fb.c -o ${BUILD_DIR}/display_fb.o -c
+
+$(BUILD_DIR)/display_sdl.o: src/display_sdl.c src/display.h
+	${CC} ${CFLAGS} src/display_sdl.c -o ${BUILD_DIR}/display_sdl.o -c
 
 $(BUILD_DIR)/buffer.o: src/buffer.c src/buffer.h
 	${CC} ${CFLAGS} src/buffer.c -o ${BUILD_DIR}/buffer.o -c

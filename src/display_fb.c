@@ -49,11 +49,19 @@ display_t* display_init()
 	return (display_t*) display;
 }
 
-void display_render_frame(display_t* display, buffer_t* buffer)
+void display_render(display_t* display, buffer_t* buffer)
 {
 	display_fb_t* display_fb = (display_fb_t*) display->extra;
 
-	for (int i = 0; i < buffer->size; i++) {
-		*(display_fb->fb + i) = buffer->data[i];
+	while (1) {
+		usleep(10 * 1000);
+
+		for (int i = 0; i < buffer->size; i++) {
+			*(display_fb->fb + i) = buffer->data[i];
+		}
+
+		printf("Rendering Frame ...  \n");
 	}
+
+
 }

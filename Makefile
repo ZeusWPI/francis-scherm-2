@@ -17,11 +17,12 @@ clean:
 	rm build/*
 
 build: ${BUILD_DIR}/server.o ${BUILD_DIR}/display_sdl.o ${BUILD_DIR}/buffer.o
-	${CC} ${CFLAGS} -o ${TARGET} -lpthread -lSDL2 \
+	${CC} ${CFLAGS} -o ${TARGET} \
 		src/main.c \
 		${BUILD_DIR}/display_sdl.o \
 		${BUILD_DIR}/server.o \
-		${BUILD_DIR}/buffer.o
+		${BUILD_DIR}/buffer.o \
+		-lpthread -lSDL2 -lSDL2_ttf
 
 $(BUILD_DIR)/server.o: src/server.c src/server.h
 	${CC} ${CFLAGS} src/server.c -o ${BUILD_DIR}/server.o -c

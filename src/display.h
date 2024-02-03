@@ -14,6 +14,6 @@ typedef struct display {
 
 display_t* display_init();
 
-void display_render_frame(display_t*, buffer_t*);
+void display_render(display_t*, buffer_t*);
 
 #endif /* FS2_DISPLAY */

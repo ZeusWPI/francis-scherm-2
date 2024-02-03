@@ -27,11 +27,7 @@ int main()
 	pthread_t s_thread;
 	pthread_create(&s_thread, NULL, &server_thread, (void *) &s_args);
 
-	while (1) {
-		usleep(10 * 1000);
-		display_render_frame(display, buffer);
-		printf("Rendering Frame ...  \n");
-	}
+	display_render(display, buffer);
 
 	return 0;
 }

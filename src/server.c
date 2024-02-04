@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <byteswap.h>
 
 /* Socket Stuff */
 #include <arpa/inet.h>
@@ -8,6 +9,8 @@
 #include <unistd.h>
 
 #include "server.h"
+
+#define PACKET_SIZE 7
 
 typedef struct server_worker_thread_args {
 	server_t* server;
@@ -87,27 +90,21 @@ void * server_worker_thread(void* args)
 	server_worker_thread_args_t* s_args = (server_worker_thread_args_t*) args;
 
 	long res = 0;
-	uint8_t bytes_received = 0;
-	uint8_t packet[7];
+	uint8_t buffer[1000][PACKET_SIZE];
 
-	while ((res = recv(s_args->socket, &packet, 7-bytes_received, MSG_WAITFORONE)) != -1) {
+	while ((res = recv(s_args->socket, &buffer, 1000*PACKET_SIZE, MSG_WAITALL)) != -1) {
 		if (res == 0) {
 			break;
 		}
 
-		if (res != 7) {
-			bytes_received += res;
-			if (bytes_received != 7) {
-				continue;
-			} else {
-				bytes_received = 0;
-			}
+		for (int i = 0; i < 1000; i++) {
+			uint8_t *packet = buffer[i];
+
+			uint16_t x = __bswap_constant_16(((uint16_t *) packet)[0]);
+			uint16_t y = __bswap_constant_16(((uint16_t *) packet)[1]);
+
+			buffer_set(s_args->buffer, x, y, packet[4], packet[5], packet[6], ~0);
 		}
-
-		uint16_t x = packet[0] << 8 | packet[1];
-		uint16_t y = packet[2] << 8 | packet[3];
-
-		buffer_set(s_args->buffer, x, y, packet[4], packet[5], packet[6], ~0);
 	}
 
 	return NULL;
